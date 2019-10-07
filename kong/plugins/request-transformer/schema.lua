@@ -1,6 +1,6 @@
 local pl_template = require "pl.template"
 local tx = require "pl.tablex"
--- local typedefs = require "kong.db.schema.typedefs"
+local typedefs = require "kong.db.schema.typedefs"
 local validate_header_name = require("kong.tools.utils").validate_header_name
 
 -- entries must have colons to set the key and value apart
@@ -189,11 +189,11 @@ table.insert(colon_strings_array_record_plus_uri.fields, uri)
 return {
   name = "argonath-request-transformer",
   fields = {
-    -- { run_on = typedefs.run_on_first },
+    { run_on = typedefs.run_on_first },
     { config = {
         type = "record",
         fields = {
-          -- { http_method = typedefs.http_method },
+          { http_method = typedefs.http_method },
           { remove  = strings_array_record },
           { rename  = colon_rename_strings_array_record },
           { replace = colon_strings_array_record_plus_uri },
