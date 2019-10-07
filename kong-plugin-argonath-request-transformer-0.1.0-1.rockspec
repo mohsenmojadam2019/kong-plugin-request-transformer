@@ -1,4 +1,4 @@
-opackage = "kong-plugin-argonath-request-transformer"
+package = "kong-plugin-argonath-request-transformer"
 version = "0.1.0-1"
 
 source = {
