@@ -149,11 +149,12 @@ local colon_strings_array_record = {
   },
 }
 
+-- match = "^([^.]+)%.*(.-)$", 
 local transform_record = {
   type = "record",
   fields = {
-    { from = { type = "string", match = "^([^.]+)%.*(.-)$", custom_validator = validate_from_value }},
-    { to = { type = "string", match = "^([^.]+)%.*(.-)$", custom_validator = validate_to_value }},
+    { from = { type = "string", custom_validator = validate_from_value }},
+    { to = { type = "string", custom_validator = validate_to_value }},
   },
 }
 
