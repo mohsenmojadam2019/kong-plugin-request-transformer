@@ -95,11 +95,13 @@ local function validate_value(entry, direction)
 end
 
 local function validate_from_value(entry)
-  return validate_value(entry, "from")
+  local isValid, error = validate_value(entry, "from")
+  return isValid, error
 end
 
 local function validate_to_value(entry)
-  return validate_value(entry, "to")
+  local isValid, error = validate_value(entry, "to")
+  return isValid, error
 end
 
 local strings_array = {
