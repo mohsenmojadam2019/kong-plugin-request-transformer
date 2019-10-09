@@ -53,7 +53,9 @@ end
 -- TODO NPE safe logger
 local function log(char, v)
   if (v) then
-    print(char..serialize(v))
+    ngx_log(DEBUG, char..serialize(v))
+  else
+    ngx_log(DEBUG, char.." ended up null...")
   end
 end
 
@@ -119,15 +121,18 @@ local function getValueFromJsonPath(json, path)
   return value
 end
 
-
--- TODO
+-- Safe method to decodes a JWT token
+-- 
+-- Arguments:
+--  @token: The value of the Authorization Bearer header (ideally JWT)
+-- Returns:
+--  Empty Map or Map of JWT claims/headers
 local function getJwtFromAuth(token)
   -- decode token to get roles claim
   local jwt, err = jwt_decoder:new(token)
   if err then
     log("Couldn't get JWT from value", token)
     return {}
-    -- return false, {status = 401, message = "Bad token; " .. tostring(err)}
   end
 
   return jwt
@@ -148,15 +153,19 @@ local function getMapValue(parent)
   local map = {}
 
   if (parent == "query") then
-    map = query
+    map = template_environment.query_params
   elseif (parent == "header") then
-    map = header
+    map = template_environment.headers
   elseif (parent == "body") then
-    map = body
+    -- TRT TODO, probably remove
+    -- Call req_read_body to read the request body first
+    req_read_body()
+    map = req_get_body_data()
   elseif (parent == "jwt") then
     local jwt = {}
-    local auth = stringContains(header.Authorization, "Bearer ")
-    if (auth) then
+    if (template_environment.headers.Authorization 
+        and stringContains(template_environment.headers.Authorization, "Bearer ")) then
+      local authorization = template_environment.headers.Authorization
       local token, i = string.gsub(authorization, "Bearer ", "")
       jwt = getJwtFromAuth(token)
     end
@@ -178,8 +187,9 @@ end
 local function getRequestValue(path)
   local parent, rest = splitByPeriod(path)
 
-  log("1st: ", parent)
-  log("2nd: ", rest)
+  print("Setting request value")
+  log("parent: ", parent)
+  log("rest: ", rest)
 
   local requestValue
 
@@ -187,8 +197,6 @@ local function getRequestValue(path)
     local map = getMapValue(parent)
     -- Set global...
     requestValue = getValueFromJsonPath(map, rest)
-
-    log("Value: ", requestValue)
   end
 
   return requestValue
@@ -231,8 +239,9 @@ end
 local function setRequestValue(path, value)
   local parent, rest = splitByPeriod(path)
 
-  log("1st: ", parent)
-  log("2nd: ", rest)
+  print("Setting request value")
+  log("parent: ", parent)
+  log("rest: ", rest)
 
   if (parent) then
     if (parent == "query") then
@@ -240,10 +249,13 @@ local function setRequestValue(path, value)
       setValueFromJsonPath(querystring, rest, value)
       req_set_uri_args(querystring)
     elseif (parent == "header") then
+      log("Setting header, name: ", rest)
+      log("Setting header, value: ", value)
       req_set_header(rest, value)
     end
   end
 end
+
 
 local function parse_json(body)
   if body then
@@ -701,18 +713,19 @@ end
 --  TODO: This should be entirely safe to not throw errors plz
 local function transform_request(conf)
   if conf.transform and #conf.transform > 0 then
-    for i, line in ipairs(conf.transform) do
+     for i, line in ipairs(conf.transform) do
       local from = line.from
       local to = line.to
       print("------------------")
       print("from ("..i.."): "..from);
       print("to   ("..i.."): "..to);
-  
+
       -- Don't bother handling arrays...
       -- TRT: TODO
       if (not stringContains(from, "*") and not stringContains(to, "*")) then
         local fromValue = getRequestValue(from)
-  
+
+        log("fromValue: ", fromValue)
         setRequestValue(to, fromValue)
         print("------------------\n")
       end
