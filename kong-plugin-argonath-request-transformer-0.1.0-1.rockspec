@@ -18,11 +18,11 @@ dependencies = {
 build = {
   type = "builtin",
   modules = {
-    ["kong.plugins.argonath-request-transformer.migrations.cassandra"] = "kong/plugins/request-transformer/migrations/cassandra.lua",
-    ["kong.plugins.argonath-request-transformer.migrations.postgres"] = "kong/plugins/request-transformer/migrations/postgres.lua",
-    ["kong.plugins.argonath-request-transformer.migrations.common"] = "kong/plugins/request-transformer/migrations/common.lua",
-    ["kong.plugins.argonath-request-transformer.handler"] = "kong/plugins/request-transformer/handler.lua",
-    ["kong.plugins.argonath-request-transformer.access"] = "kong/plugins/request-transformer/access.lua",
-    ["kong.plugins.argonath-request-transformer.schema"] = "kong/plugins/request-transformer/schema.lua",
+    ["kong.plugins.argonath-request-transformer.migrations.cassandra"] = "kong/plugins/argonath-request-transformer/migrations/cassandra.lua",
+    ["kong.plugins.argonath-request-transformer.migrations.postgres"] = "kong/plugins/argonath-request-transformer/migrations/postgres.lua",
+    ["kong.plugins.argonath-request-transformer.migrations.common"] = "kong/plugins/argonath-request-transformer/migrations/common.lua",
+    ["kong.plugins.argonath-request-transformer.handler"] = "kong/plugins/argonath-request-transformer/handler.lua",
+    ["kong.plugins.argonath-request-transformer.access"] = "kong/plugins/argonath-request-transformer/access.lua",
+    ["kong.plugins.argonath-request-transformer.schema"] = "kong/plugins/argonath-request-transformer/schema.lua",
   }
 }

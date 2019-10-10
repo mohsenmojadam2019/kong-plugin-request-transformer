@@ -1,10 +1,12 @@
 [![Build Status][badge-travis-image]][badge-travis-url]
 
-# Kong request transformer plugin
+# Kong argonath request transformer plugin
 
 ## Synopsis
 
 This plugin transforms the request sent by a client on the fly on Kong, before hitting the upstream server. It can match complete or portions of incoming requests using regular expressions, save those matched strings into variables, and substitute those strings into transformed requests via flexible templates.
+
+>> Note: This has been modified from the original version to add transformations from one type to another (query -> header, etc.)
 
 ## Configuration
 
@@ -14,7 +16,7 @@ Configure this plugin on a Service by making the following request:
 
 ```bash
 $ curl -X POST http://kong:8001/services/{service}/plugins \
-    --data "name=request-transformer"
+    --data "name=argonath-request-transformer"
 ```
 
 `service`: the `id` or `name` of the Service that this plugin configuration will target.
@@ -25,7 +27,7 @@ Configure this plugin on a Route with:
 
 ```bash
 $ curl -X POST http://kong:8001/routes/{route_id}/plugins \
-    --data "name=request-transformer"
+    --data "name=argonath-request-transformer"
 ```
 
 `route_id`: the `id` of the Route that this plugin configuration will target.
@@ -35,7 +37,7 @@ You can use the `http://localhost:8001/plugins` endpoint to enable this plugin o
 
 ```bash
 $ curl -X POST http://kong:8001/plugins \
-    --data "name=request-transformer" \
+    --data "name=argonath-request-transformer" \
     --data "consumer_id={consumer_id}"
 ```
 
@@ -43,14 +45,31 @@ Where `consumer_id` is the `id` of the Consumer we want to associate with this p
 
 You can combine `consumer_id` and `service_id` in the same request, to furthermore narrow the scope of the plugin.
 
+### Enabling request transformation on a service
+You can specify `transform` to marshal a value from one type to another
+
+```bash
+ curl -i -X POST \
+	--url http://localhost:8001/services/{service}/plugins \
+	--header 'Content-Type: application/json' \
+	--data '{"name":"argonath-request-transformer","config":{"transform":[{"from":"query.faar_id","to":"header.Elements-Formula-Instance-Id"},{"from":"jwt.claims.eml","to":"header.X-Email"}],"rename":{"headers": ["Authorization:X-Original-Authorization"]}}}'
+```
+
+Where we've combined renaming a header and direct transformations.
+
+i.e. `from`: `query.faar_id` and `to`: `header.Elements-Formula-Instance-Id`
+Transforms `curl localhost:8000?faar_id=1234` -> `curl localhost:8000?faar_id=1234 -H 'Elements-Formula-Instance-Id: 1234'`
+
 | form parameter                                    | default             | description                                                                                                                                                                                        |
 | ---                                               | ---                 | ---                                                                                                                                                                                                |
-| `name`                                            |                     | The name of the plugin to use, in this case `request-transformer`
+| `name`                                            |                     | The name of the plugin to use, in this case `argonath-request-transformer`
 | `service_id`                                      |                     | The id of the Service which this plugin will target.
 | `route_id`                                        |                     | The id of the Route which this plugin will target.
 | `enabled`                                         | `true`              | Whether this plugin will be applied.
 | `consumer_id`                                     |                     | The id of the Consumer which this plugin will target.
 | `config.http_method`                              |                     | Changes the HTTP method for the upstream request
+| `config.transform.from`                           |                     | Dot notated string indicating where to take the value from, (_supports `query`, `header`, `jwt`_)
+| `config.transform.to`                             |                     | Dot notated string indicating where to set the value, (_supports `query`, `header`_)
 | `config.remove.headers`                           |                     | List of header names. Unset the headers with the given name.
 | `config.remove.querystring`                       |                     | List of querystring names. Remove the querystring if it is present.
 | `config.remove.body`                              |                     | List of parameter names. Remove the parameter if and only if content-type is one the following [`application/json`,`multipart/form-data`, `application/x-www-form-urlencoded`] and parameter is present.

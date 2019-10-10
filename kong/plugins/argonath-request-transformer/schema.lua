@@ -1,3 +1,4 @@
+-- TRT: Copy of request-transformer-advanced plugin
 local pl_template = require "pl.template"
 local tx = require "pl.tablex"
 local typedefs = require "kong.db.schema.typedefs"
@@ -37,7 +38,7 @@ end
 local function validate_headers(pair, validate_value)
   local name, value = pair:match("^([^:]+):*(.-)$")
   if validate_header_name(name) == nil then
-    return nil, string.format("'%s' is not a valid header", tostring(name))
+    return buk, string.format("'%s' is not a valid header", tostring(name))
   end
 
   if validate_value then
@@ -54,20 +55,22 @@ local function validate_colon_headers(pair)
 end
 
 local function validate_name(name, direction)
-  if (parent == "query") then
+  if (name == "query") then
     return true
-  elseif (parent == "header") then
+  elseif (name == "header") then
     return true
-  elseif (parent == "body") then
-    return nil, "body is not a permissable 'from' value"
-  elseif (parent == "jwt") then
+  elseif (name == "jwt") then
     if (direction == "from") then
       return true
-    else 
+    else
       return nil, string.format("jwt is not a permissable '%s' value", tostring(direction))
     end
-  elseif (parent == "url") then
-    return nil, string.format("url is not a permissable '%s' value", tostring(direction))
+  elseif (name == "body") then
+    return nil, "body is not supported"
+  elseif (name == "url") then
+    return nil, "url is not supported"
+  else
+    return nil, string.format("%s is not supported", tostring(name))
   end
 end
 
@@ -77,31 +80,27 @@ local function validate_value(entry, direction)
   end
 
   local top, rest = entry:match("^([^.]+)%.*(.-)$")
-  local isValid, error
-  
+  local isValid, err
+
   if top then
-    isValid, error = validate_name(top, direction)
-  else 
-    isValid, error = nil, string.format("Could not parse %s entry, did you miss a . ?", tostring(direction))
+    isValid, err = validate_name(top, direction)
+  else
+    isValid, err = nil, string.format("Could not parse %s entry, did you miss a . ?", tostring(direction))
   end
 
-  if rest then
-    -- TODO, should validate?
-  else
-    isValid, error = nil, string.format("Could not parse %s entry, did you miss a . ?", tostring(direction))
+  if not rest or rest == '' then
+    isValid, err = nil, string.format("Could not parse %s entry, did you miss a . ?", tostring(direction))
   end
-  
-  return isValid, error
+
+  return isValid, err
 end
 
 local function validate_from_value(entry)
-  local isValid, error = validate_value(entry, "from")
-  return isValid, error
+  return validate_value(entry, "from")
 end
 
 local function validate_to_value(entry)
-  local isValid, error = validate_value(entry, "to")
-  return isValid, error
+  return validate_value(entry, "to")
 end
 
 local strings_array = {
@@ -151,12 +150,11 @@ local colon_strings_array_record = {
   },
 }
 
--- match = "^([^.]+)%.*(.-)$", 
 local transform_record = {
   type = "record",
   fields = {
-    { from = { type = "string", custom_validator = validate_from_value }},
-    { to = { type = "string", custom_validator = validate_to_value }},
+    { from = { type = "string", match = "^([^.]+)%.*(.-)$", custom_validator = validate_from_value }},
+    { to = { type = "string", match = "^([^.]+)%.*(.-)$",custom_validator = validate_to_value }},
   },
 }
 
