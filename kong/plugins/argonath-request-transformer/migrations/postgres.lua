@@ -1,5 +1,5 @@
 -- TRT: Copy of request-transformer-advanced plugin
-local common = require "kong.plugins.request-transformer.migrations.common"
+local common = require "kong.plugins.argonath-request-transformer.migrations.common"
 
 return {
   {
