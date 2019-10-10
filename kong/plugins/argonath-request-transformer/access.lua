@@ -43,7 +43,7 @@ local EMPTY = pl_tablex.readonly({})
 --  @o: The object to print
 -- Returns:
 --  The object as string
-function serialize(o)
+local function serialize(o)
   if not o then
     return " is null"
   elseif type(o) == 'table' then
@@ -174,7 +174,7 @@ local function getMapValue(parent, path)
     if (template_environment.headers.Authorization 
         and stringContains(template_environment.headers.Authorization, "Bearer ")) then
       local authorization = template_environment.headers.Authorization
-      local token, i = string.gsub(authorization, "Bearer ", "")
+      local token = string.gsub(authorization, "Bearer ", "")
       jwt = getJwtFromAuth(token)
     end
     map = jwt
