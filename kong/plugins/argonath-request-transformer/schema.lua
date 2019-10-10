@@ -38,7 +38,7 @@ end
 local function validate_headers(pair, validate_value)
   local name, value = pair:match("^([^:]+):*(.-)$")
   if validate_header_name(name) == nil then
-    return false, string.format("'%s' is not a valid header", tostring(name))
+    return buk, string.format("'%s' is not a valid header", tostring(name))
   end
 
   if validate_value then
@@ -59,16 +59,16 @@ local function validate_name(name, direction)
     return true
   elseif (name == "header") then
     return true
-  elseif (name == "body") then
-    return nil, "body is not supported"
   elseif (name == "jwt") then
     if (direction == "from") then
       return true
     else
       return nil, string.format("jwt is not a permissable '%s' value", tostring(direction))
     end
+  elseif (name == "body") then
+    return nil, "body is not supported"
   elseif (name == "url") then
-    return nil, string.format("url is not a permissable '%s' value", tostring(direction))
+    return nil, "url is not supported"
   else
     return nil, string.format("%s is not supported", tostring(name))
   end
