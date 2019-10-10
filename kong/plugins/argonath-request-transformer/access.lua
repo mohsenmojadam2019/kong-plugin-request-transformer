@@ -1,3 +1,4 @@
+-- TRT: Copy of request-transformer-advanced plugin
 local multipart = require "multipart"
 local cjson = require "cjson"
 local pl_template = require "pl.template"
@@ -36,9 +37,16 @@ local HOST = "host"
 local JSON, MULTI, ENCODED = "json", "multi_part", "form_encoded"
 local EMPTY = pl_tablex.readonly({})
 
--- TODO 
+-- JSON serialization for printing various objects
+-- 
+-- Arguments:
+--  @o: The object to print
+-- Returns:
+--  The object as string
 function serialize(o)
-  if type(o) == 'table' then
+  if not o then
+    return " is null"
+  elseif type(o) == 'table' then
      local s = '{ '
      for k,v in pairs(o) do
         if type(k) ~= 'number' then k = '"'..k..'"' end
@@ -50,13 +58,15 @@ function serialize(o)
   end
 end
 
--- TODO NPE safe logger
+-- NPE safe logger
+-- 
+-- Arguments:
+--  @char: String to log
+--  @v: Value to log
+-- Returns:
+--  VOID
 local function log(char, v)
-  if (v) then
-    ngx_log(DEBUG, char..serialize(v))
-  else
-    ngx_log(DEBUG, char.." ended up null...")
-  end
+  ngx_log(DEBUG, char..serialize(v))
 end
 
 -- Attempts to split a value by period. This returns as 2 values:
@@ -75,7 +85,6 @@ local function splitByPeriod(value)
   end
   return EMPTY
 end
-
 
 -- Check existance via plaintext
 -- 
@@ -131,8 +140,8 @@ local function getJwtFromAuth(token)
   -- decode token to get roles claim
   local jwt, err = jwt_decoder:new(token)
   if err then
-    log("Couldn't get JWT from value", token)
-    return {}
+    log("Couldn't get JWT: ", err)
+    jwt = {}
   end
 
   return jwt
@@ -149,7 +158,7 @@ end
 --  @parent: Top level path value, corresponds to request values (query, header, body, jwt, url)
 -- Returns:
 --  JSON of request value
-local function getMapValue(parent)
+local function getMapValue(parent, path)
   local map = {}
 
   if (parent == "query") then
@@ -157,8 +166,7 @@ local function getMapValue(parent)
   elseif (parent == "header") then
     map = template_environment.headers
   elseif (parent == "body") then
-    -- TRT TODO, probably remove
-    -- Call req_read_body to read the request body first
+    -- Schema validation shouldn't allow you to get here...
     req_read_body()
     map = req_get_body_data()
   elseif (parent == "jwt") then
@@ -171,8 +179,8 @@ local function getMapValue(parent)
     end
     map = jwt
   elseif (parent == "url") then
-    -- TRT: TODO
-    map = {}
+    -- Schema validation shouldn't allow you to get here...
+    log("URL field is not supported for path, ", path)
   end
 
   return map
@@ -186,15 +194,10 @@ end
 --  Request value
 local function getRequestValue(path)
   local parent, rest = splitByPeriod(path)
-
-  print("Setting request value")
-  log("parent: ", parent)
-  log("rest: ", rest)
-
   local requestValue
 
   if (parent) then
-    local map = getMapValue(parent)
+    local map = getMapValue(parent, path)
     -- Set global...
     requestValue = getValueFromJsonPath(map, rest)
   end
@@ -239,20 +242,18 @@ end
 local function setRequestValue(path, value)
   local parent, rest = splitByPeriod(path)
 
-  print("Setting request value")
-  log("parent: ", parent)
-  log("rest: ", rest)
-
   if (parent) then
     if (parent == "query") then
       local querystring = pl_copy_table(template_environment.query_params)
       setValueFromJsonPath(querystring, rest, value)
       req_set_uri_args(querystring)
     elseif (parent == "header") then
-      log("Setting header, name: ", rest)
-      log("Setting header, value: ", value)
       req_set_header(rest, value)
+    else
+      log("Not supported. Cannot set requestValue for path, ", path)
     end
+  else
+    log("Cannot set requestValue for path, ", path)
   end
 end
 
@@ -709,25 +710,25 @@ local function transform_uri(conf)
   end
 end
 
--- Transformation method for request...
---  TODO: This should be entirely safe to not throw errors plz
+-- Performs any kinds of request transformations
+-- 
+-- Arguments:
+--  @conf: The configuration setup in the plugin
+-- Returns:
+--  VOID
 local function transform_request(conf)
   if conf.transform and #conf.transform > 0 then
      for i, line in ipairs(conf.transform) do
       local from = line.from
       local to = line.to
-      print("------------------")
-      print("from ("..i.."): "..from);
-      print("to   ("..i.."): "..to);
+      log("from: ", from)
+      log("to: ", to)
 
-      -- Don't bother handling arrays...
-      -- TRT: TODO
+      -- We shouldn't get to this point, but we're not handling arrays here
       if (not stringContains(from, "*") and not stringContains(to, "*")) then
         local fromValue = getRequestValue(from)
 
-        log("fromValue: ", fromValue)
         setRequestValue(to, fromValue)
-        print("------------------\n")
       end
     end
   end
